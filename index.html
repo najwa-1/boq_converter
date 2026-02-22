@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BOQ Converter — KD → QAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Outfit:wght@300;400;500;600&family=Noto+Kufi+Arabic:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── tokens ───────────────────────────────────────────────────── */
+:root{
+  --bg:#F7F4EF;
+  --surface:#FFFFFF;
+  --surface2:#F0EDE6;
+  --border:#E2DDD5;
+  --border2:#CCC7BC;
+  --text:#1C1814;
+  --text2:#7A7368;
+  --text3:#A89F94;
+  --gold:#B8882A;
+  --gold-l:#F5E8C8;
+  --gold-d:#8A6318;
+  --teal:#1A7A6E;
+  --teal-l:#D0EDEA;
+  --red:#C43A2A;
+  --red-l:#FAE0DC;
+  --r:14px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --sh2:0 2px 8px rgba(0,0,0,.08),0 8px 32px rgba(0,0,0,.08);
+  --fbd:'Outfit',sans-serif;
+  --far:'Noto Kufi Arabic',sans-serif;
+  --fdp:'Playfair Display',serif;
+}
+[data-dark]{
+  --bg:#111009;
+  --surface:#1A1814;
+  --surface2:#221F19;
+  --border:#302C24;
+  --border2:#45403A;
+  --text:#F0EBE3;
+  --text2:#8A8378;
+  --text3:#5A5550;
+  --gold:#D4A030;
+  --gold-l:#1E1500;
+  --gold-d:#E8B840;
+  --teal:#26A090;
+  --teal-l:#041A18;
+  --sh:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.3);
+  --sh2:0 2px 8px rgba(0,0,0,.4),0 8px 32px rgba(0,0,0,.4);
+}
+/* ── reset ── */
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--fbd);font-size:15px;line-height:1.6;
+  min-height:100vh;transition:background .35s,color .35s;
+  -webkit-font-smoothing:antialiased;
+}
+[dir=rtl] body,[dir=rtl]{font-family:var(--far);}
+
+/* ── noise texture overlay ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ── layout ── */
+.wrap{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:36px 20px 80px;}
+
+/* ── header ── */
+.header{display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:52px;}
+.brand{display:flex;flex-direction:column;gap:4px;}
+.brand-name{
+  font-family:var(--fdp);font-size:28px;line-height:1;
+  letter-spacing:-.01em;color:var(--text);
+}
+.brand-name span{color:var(--gold);font-style:italic;}
+.brand-tagline{font-size:11.5px;color:var(--text3);letter-spacing:.1em;
+  text-transform:uppercase;font-weight:500;}
+.hdr-controls{display:flex;gap:8px;padding-top:4px;}
+
+/* ── pill button ── */
+.pill{
+  border:1.5px solid var(--border2);background:var(--surface);
+  color:var(--text2);padding:6px 15px;border-radius:100px;
+  font-size:12px;font-weight:500;cursor:pointer;
+  font-family:inherit;transition:all .2s;letter-spacing:.04em;
+}
+.pill:hover{border-color:var(--gold);color:var(--gold);}
+
+/* ── section card ── */
+.card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r);padding:28px 28px;box-shadow:var(--sh);
+  margin-bottom:16px;transition:box-shadow .3s;
+}
+.card:hover{box-shadow:var(--sh2);}
+
+/* ── section label ── */
+.sec-label{
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text3);font-weight:600;margin-bottom:14px;
+}
+
+/* ── mode grid ── */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.mode-tile{
+  border:2px solid var(--border);border-radius:11px;padding:18px 16px;
+  cursor:pointer;transition:all .22s;background:var(--surface2);
+}
+.mode-tile:hover{border-color:var(--gold);background:var(--gold-l);}
+.mode-tile.on{border-color:var(--gold);background:var(--gold-l);}
+.mode-tile.on .tile-icon{opacity:1;}
+.tile-icon{font-size:26px;margin-bottom:10px;opacity:.65;
+  transition:opacity .2s;display:block;}
+.tile-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.tile-desc{font-size:11.5px;color:var(--text2);line-height:1.45;}
+
+/* ── rate row ── */
+.rate-row{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.rate-lbl{font-size:12.5px;color:var(--text2);white-space:nowrap;min-width:80px;}
+.rate-field{
+  flex:1;border:1.5px solid var(--border);background:var(--surface2);
+  color:var(--text);padding:9px 13px;border-radius:8px;font-size:14px;
+  font-family:inherit;outline:none;transition:border-color .2s;
+}
+.rate-field:focus{border-color:var(--gold);}
+.rate-badge{
+  background:var(--gold-l);color:var(--gold-d);
+  padding:5px 13px;border-radius:7px;font-size:12px;font-weight:600;
+  white-space:nowrap;border:1px solid rgba(184,136,42,.2);
+}
+
+/* ── divider ── */
+.div{height:1px;background:var(--border);margin:22px 0;}
+
+/* ── drop zone ── */
+.drop{
+  border:2px dashed var(--border2);border-radius:11px;
+  padding:44px 28px;text-align:center;cursor:pointer;
+  transition:all .25s;background:var(--surface2);
+  position:relative;overflow:hidden;
+}
+.drop::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 0%,var(--gold-l),transparent 70%);
+  opacity:0;transition:opacity .3s;
+}
+.drop:hover::before,.drop.drag::before{opacity:1;}
+.drop:hover,.drop.drag{border-color:var(--gold);}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-ico{font-size:36px;margin-bottom:12px;opacity:.5;display:block;
+  transition:transform .3s,opacity .3s;}
+.drop:hover .drop-ico{opacity:.8;transform:scale(1.08);}
+.drop-txt{font-size:14.5px;color:var(--text2);margin-bottom:5px;
+  position:relative;z-index:1;}
+.drop-hint{font-size:12px;color:var(--text3);position:relative;z-index:1;}
+
+/* ── file pill ── */
+.file-pill{
+  display:flex;align-items:center;gap:11px;margin-top:14px;
+  background:var(--teal-l);border:1.5px solid var(--teal);
+  border-radius:9px;padding:11px 15px;
+}
+.fp-name{font-size:13px;font-weight:500;color:var(--teal);flex:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fp-size{font-size:11px;color:var(--text2);}
+.fp-x{font-size:16px;color:var(--text2);cursor:pointer;background:none;
+  border:none;font-family:inherit;line-height:1;flex-shrink:0;}
+.fp-x:hover{color:var(--red);}
+
+/* ── convert button ── */
+.btn-go{
+  width:100%;padding:15px 20px;margin-top:22px;
+  border:none;border-radius:10px;cursor:pointer;
+  background:var(--gold);color:#fff;
+  font-size:15px;font-weight:600;font-family:inherit;
+  letter-spacing:.03em;transition:all .22s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-go:hover:not(:disabled){
+  background:var(--gold-d);transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(184,136,42,.38);
+}
+.btn-go:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ── progress card ── */
+.prog-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r);padding:28px;box-shadow:var(--sh);
+  display:none;
+}
+.prog-top{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;}
+.prog-label{font-size:16px;font-weight:600;}
+.prog-pct{
+  font-family:var(--fdp);font-size:38px;color:var(--gold);
+  line-height:1;font-style:italic;
+}
+.prog-track{
+  background:var(--surface2);border-radius:100px;height:8px;
+  overflow:hidden;margin-bottom:20px;
+  border:1px solid var(--border);
+}
+.prog-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--gold) 0%,var(--gold-d) 100%);
+  border-radius:100px;transition:width .45s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.prog-fill::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shimmer 1.5s infinite;
+}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+.prog-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.pstat{display:flex;flex-direction:column;gap:3px;}
+.pstat-v{font-size:22px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.pstat-l{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;}
+
+/* ── done card ── */
+.done-card{
+  background:var(--surface);
+  border:1.5px solid var(--teal);
+  border-radius:var(--r);padding:40px 28px;
+  box-shadow:0 4px 28px rgba(26,122,110,.12);
+  text-align:center;display:none;
+}
+.done-ico{font-size:56px;margin-bottom:18px;display:block;
+  animation:pop .5s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes pop{
+  from{transform:scale(.4);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+.done-title{
+  font-family:var(--fdp);font-size:26px;color:var(--teal);
+  margin-bottom:8px;
+}
+.done-meta{font-size:13px;color:var(--text2);margin-bottom:30px;}
+.btn-dl{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--teal);color:#fff;padding:14px 36px;
+  border-radius:10px;font-size:15px;font-weight:600;
+  font-family:inherit;border:none;cursor:pointer;
+  transition:all .22s;text-decoration:none;
+}
+.btn-dl:hover{background:#0d5e54;transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(26,122,110,.38);}
+.btn-again{
+  display:inline-block;margin-top:18px;font-size:12.5px;
+  color:var(--text2);cursor:pointer;background:none;border:none;
+  font-family:inherit;text-decoration:underline;text-underline-offset:3px;
+}
+.btn-again:hover{color:var(--text);}
+
+/* ── error banner ── */
+.err{
+  background:var(--red-l);border:1.5px solid var(--red);
+  border-radius:9px;padding:14px 18px;margin-bottom:16px;
+  font-size:13px;color:var(--red);display:none;
+}
+
+/* ── footer ── */
+.footer{text-align:center;font-size:11px;color:var(--text3);
+  margin-top:52px;letter-spacing:.06em;}
+
+/* ── spinner ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:spin .75s linear infinite;}
+
+/* ── fade up ── */
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fu{animation:fu .4s ease forwards;}
+
+@media(max-width:480px){
+  .mode-grid{grid-template-columns:1fr;}
+  .prog-stats{grid-template-columns:1fr 1fr;}
+  .hdr-controls{flex-direction:column;gap:6px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── header ── -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-name" id="j-brand">BOQ <span>Converter</span></div>
+      <div class="brand-tagline" id="j-tag">Kuwait Dinar  →  Qatari Riyal</div>
+    </div>
+    <div class="hdr-controls">
+      <button class="pill" id="j-lang" onclick="toggleLang()">عربي</button>
+      <button class="pill" id="j-theme" onclick="toggleDark()">🌙</button>
+    </div>
+  </header>
+
+  <!-- ── error ── -->
+  <div class="err" id="j-err"></div>
+
+  <!-- ── upload form ── -->
+  <div id="j-form">
+
+    <div class="card fu">
+      <div class="sec-label" id="j-lbl-mode">Output Format</div>
+
+      <div class="mode-grid">
+        <div class="mode-tile on" id="tile-pdf" onclick="setMode('pdf')">
+          <span class="tile-icon">📄</span>
+          <div class="tile-name">PDF → PDF</div>
+          <div class="tile-desc" id="j-desc-pdf">Preserve original layout · Replace values in place</div>
+        </div>
+        <div class="mode-tile" id="tile-xl" onclick="setMode('xlsx')">
+          <span class="tile-icon">📊</span>
+          <div class="tile-name">PDF → Excel</div>
+          <div class="tile-desc" id="j-desc-xl">Extract to formatted spreadsheet · One sheet per page</div>
+        </div>
+      </div>
+
+      <div class="sec-label" id="j-lbl-rate">Exchange Rate</div>
+      <div class="rate-row">
+        <span class="rate-lbl" id="j-lbl-1kd">1 KD equals</span>
+        <input class="rate-field" id="j-rate" type="number"
+               value="11.9" min="0.001" step="0.001"/>
+        <div class="rate-badge">= <span id="j-rate-v">11.9</span> QAR</div>
+      </div>
+
+      <div class="div"></div>
+
+      <div class="sec-label" id="j-lbl-file">Source File</div>
+      <div class="drop" id="j-drop"
+           ondragover="ev.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="onDrop(event)">
+        <input type="file" accept=".pdf" onchange="onPick(event)"/>
+        <span class="drop-ico">📂</span>
+        <div class="drop-txt" id="j-drop-txt">Drop PDF here, or click to browse</div>
+        <div class="drop-hint" id="j-drop-hint">Bill of Quantities / BOQ PDF files</div>
+      </div>
+      <div id="j-fp"></div>
+
+      <button class="btn-go" id="j-go" onclick="go()" disabled>
+        <span id="j-go-txt">Convert</span>
+      </button>
+    </div>
+
+  </div><!-- /form -->
+
+  <!-- ── progress ── -->
+  <div class="prog-card fu" id="j-prog">
+    <div class="prog-top">
+      <div class="prog-label" id="j-prog-lbl">Converting…</div>
+      <div class="prog-pct" id="j-pct">0%</div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="j-bar" style="width:0%"></div></div>
+    <div class="prog-stats">
+      <div class="pstat">
+        <div class="pstat-v" id="j-s-page">0</div>
+        <div class="pstat-l" id="j-l-page">Page</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-v" id="j-s-total">—</div>
+        <div class="pstat-l" id="j-l-total">Total</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-v" id="j-s-rep">—</div>
+        <div class="pstat-l" id="j-l-rep">Converted</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-v" id="j-s-time">0s</div>
+        <div class="pstat-l" id="j-l-time">Elapsed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── done ── -->
+  <div class="done-card fu" id="j-done">
+    <span class="done-ico">✅</span>
+    <div class="done-title" id="j-done-title">Conversion Complete!</div>
+    <div class="done-meta" id="j-done-meta"></div>
+    <button class="btn-dl" onclick="dl()">
+      ⬇&nbsp;&nbsp;<span id="j-dl-txt">Download File</span>
+    </button>
+    <br/>
+    <button class="btn-again" onclick="reset()" id="j-again">Convert another file →</button>
+  </div>
+
+  <div class="footer" id="j-foot">
+    BOQ Converter · All processing runs locally on your machine
+  </div>
+</div>
+
+<script>
+/* ── i18n ───────────────────────────────────────────────────── */
+const T={
+  en:{
+    brand:'BOQ <span>Converter</span>',tag:'Kuwait Dinar  →  Qatari Riyal',lang:'عربي',
+    lblMode:'Output Format',lblRate:'Exchange Rate',lblFile:'Source File',
+    descPdf:'Preserve original layout · Replace values in place',
+    descXl:'Extract to formatted spreadsheet · One sheet per page',
+    lbl1kd:'1 KD equals',dropTxt:'Drop PDF here, or click to browse',
+    dropHint:'Bill of Quantities / BOQ PDF files',
+    go:'Convert',converting:'Converting…',
+    pg:'Page',total:'Total',converted:'Converted',elapsed:'Elapsed',
+    doneTitle:'Conversion Complete!',dl:'Download File',
+    again:'Convert another file →',
+    foot:'BOQ Converter',
+  },
+  ar:{
+    brand:'محوّل <span>جداول الكميات</span>',tag:'دينار كويتي  →  ريال قطري',lang:'EN',
+    lblMode:'صيغة الخرج',lblRate:'معدل الصرف',lblFile:'الملف المصدر',
+    descPdf:'الحفاظ على التخطيط الأصلي مع تحويل القيم',
+    descXl:'استخراج إلى جدول بيانات منسّق · شيت لكل صفحة',
+    lbl1kd:'1 د.ك يساوي',dropTxt:'أسقط ملف PDF هنا أو انقر للتصفح',
+    dropHint:'ملفات جداول الكميات BOQ',
+    go:'تحويل',converting:'جارٍ التحويل…',
+    pg:'الصفحة',total:'الإجمالي',converted:'المحوّلة',elapsed:'الوقت',
+    doneTitle:'اكتمل التحويل!',dl:'تنزيل الملف',
+    again:'تحويل ملف آخر →',
+    foot:'محوّل جداول الكميات',
+  }
+};
+let lang='en', dark=false, mode='pdf', file=null, jobId=null;
+let t0=null, timer=null;
+
+function setText(id,html){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML=html;
+}
+function applyLang(){
+  const t=T[lang];
+  const isAr=lang==='ar';
+  document.documentElement.setAttribute('dir',isAr?'rtl':'ltr');
+  setText('j-brand',t.brand);
+  setText('j-tag',t.tag);
+  setText('j-lang',t.lang);
+  setText('j-lbl-mode',t.lblMode);
+  setText('j-lbl-rate',t.lblRate);
+  setText('j-lbl-file',t.lblFile);
+  setText('j-desc-pdf',t.descPdf);
+  setText('j-desc-xl',t.descXl);
+  setText('j-lbl-1kd',t.lbl1kd);
+  setText('j-drop-txt',t.dropTxt);
+  setText('j-drop-hint',t.dropHint);
+  setText('j-go-txt',t.go);
+  setText('j-prog-lbl',t.converting);
+  setText('j-l-page',t.pg);
+  setText('j-l-total',t.total);
+  setText('j-l-rep',t.converted);
+  setText('j-l-time',t.elapsed);
+  setText('j-done-title',t.doneTitle);
+  setText('j-dl-txt',t.dl);
+  setText('j-again',t.again);
+  setText('j-foot',t.foot);
+}
+function toggleLang(){ lang=lang==='en'?'ar':'en'; applyLang(); }
+function toggleDark(){
+  dark=!dark;
+  document.documentElement.toggleAttribute('data-dark',dark);
+  document.getElementById('j-theme').textContent=dark?'☀️':'🌙';
+}
+
+/* ── mode ── */
+function setMode(m){
+  mode=m;
+  document.getElementById('tile-pdf').classList.toggle('on',m==='pdf');
+  document.getElementById('tile-xl').classList.toggle('on',m==='xlsx');
+}
+
+/* ── rate badge ── */
+document.getElementById('j-rate').addEventListener('input',function(){
+  document.getElementById('j-rate-v').textContent=this.value||'0';
+});
+
+/* ── file ── */
+function onPick(e){ bindFile(e.target.files[0]); }
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('j-drop').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith('.pdf')) bindFile(f);
+}
+function bindFile(f){
+  file=f;
+  const mb=(f.size/1048576).toFixed(2);
+  document.getElementById('j-fp').innerHTML=
+    `<div class="file-pill">
+      <span>📄</span>
+      <span class="fp-name">${f.name}</span>
+      <span class="fp-size">${mb} MB</span>
+      <button class="fp-x" onclick="clearFile()">✕</button>
+    </div>`;
+  document.getElementById('j-go').disabled=false;
+}
+function clearFile(){
+  file=null;
+  document.getElementById('j-fp').innerHTML='';
+  document.getElementById('j-go').disabled=true;
+}
+
+/* ── convert ── */
+async function go(){
+  if(!file) return;
+  const rate=document.getElementById('j-rate').value||'11.9';
+  const fd=new FormData();
+  fd.append('file',file);
+  fd.append('mode',mode);
+  fd.append('rate',rate);
+
+  // show progress
+  document.getElementById('j-form').style.display='none';
+  document.getElementById('j-err').style.display='none';
+  const pg=document.getElementById('j-prog');
+  pg.style.display='block';
+  pg.style.animation='fu .4s ease forwards';
+
+  t0=Date.now();
+  timer=setInterval(()=>{
+    const s=((Date.now()-t0)/1000).toFixed(0);
+    document.getElementById('j-s-time').textContent=s+'s';
+  },500);
+
+  const res=await fetch('/upload',{method:'POST',body:fd});
+  const {job_id}=await res.json();
+  jobId=job_id;
+
+  const es=new EventSource(`/progress/${job_id}`);
+  es.onmessage=ev=>{
+    const d=JSON.parse(ev.data);
+    const p=d.progress||0;
+    document.getElementById('j-pct').textContent=p+'%';
+    document.getElementById('j-bar').style.width=p+'%';
+    if(d.page)  document.getElementById('j-s-page').textContent=d.page;
+    if(d.pages) document.getElementById('j-s-total').textContent=d.pages;
+    if(d.replaced!=null)
+      document.getElementById('j-s-rep').textContent=(d.replaced||0).toLocaleString();
+    if(d.status==='done'||d.done){ es.close(); clearInterval(timer); done(d); }
+    if(d.status==='error'){
+      es.close(); clearInterval(timer);
+      showErr(d.error||'Unknown error');
+    }
+  };
+}
+
+function done(d){
+  document.getElementById('j-prog').style.display='none';
+  const dc=document.getElementById('j-done');
+  dc.style.display='block'; dc.style.animation='fu .4s ease forwards';
+  const sec=((Date.now()-t0)/1000).toFixed(1);
+  const pg=d.pages||'';
+  const rep=d.replaced?` · ${d.replaced.toLocaleString()} items`:'';
+  document.getElementById('j-done-meta').textContent=`${pg} pages${rep} · ${sec}s`;
+}
+
+function dl(){ window.location.href=`/download/${jobId}`; }
+
+function showErr(msg){
+  document.getElementById('j-prog').style.display='none';
+  document.getElementById('j-form').style.display='block';
+  const e=document.getElementById('j-err');
+  e.textContent='❌  '+msg; e.style.display='block';
+}
+
+function reset(){
+  document.getElementById('j-done').style.display='none';
+  document.getElementById('j-err').style.display='none';
+  document.getElementById('j-form').style.display='block';
+  clearFile();
+  document.getElementById('j-bar').style.width='0%';
+  document.getElementById('j-pct').textContent='0%';
+  document.getElementById('j-s-page').textContent='0';
+  document.getElementById('j-s-total').textContent='—';
+  document.getElementById('j-s-rep').textContent='—';
+  document.getElementById('j-s-time').textContent='0s';
+  file=null; jobId=null;
+}
+</script>
+</body>
+</html>
